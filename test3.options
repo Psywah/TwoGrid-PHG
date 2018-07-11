@@ -1,0 +1,57 @@
+#!/bin/bash
+-verbosity 2
+-log_file log/log
+
+-partitioner user
+
+-nlevel 3
+
+#-mesh_file cube.D6.mesh
+#-pre_refines 9
+
+#
+#
+#  Two grid: both cube
+#
+#
+#-mesh_file mesh/cube.4.mesh
+#-mesh_file mesh/cube.8.mesh
+-mesh_file mesh/cube.16.mesh
+#-mesh_file mesh/cube.32.mesh
+#-mesh_file mesh/cube.64.mesh
+#-mesh_file mesh/cube.128.mesh
+
+-pre_refines 0
+
+# coarse mesh
+#  same mesh
+#-mesh_file2 mesh/cube.2.mesh
+#-mesh_file2 mesh/cube.4.mesh
+-mesh_file2 mesh/cube.8.mesh
+#-mesh_file2 mesh/cube.16.mesh
+#-mesh_file2 mesh/cube.12.mesh
+#-mesh_file2 mesh/cube.15.mesh
+#-mesh_file2 mesh/cube.16.mesh
+#-mesh_file2 mesh/cube.32.mesh
+#-mesh_file2 mesh/cube.33.mesh
+
+-nprocs2 4			# nprocs for Level 2
+
+
+
+
+# coarse mesh
+#  same mesh
+#-mesh_file3 mesh/cube.2.mesh
+-mesh_file3 mesh/cube.4.mesh
+#-mesh_file3 mesh/cube.8.mesh
+
+-nprocs3 1			# nprocs for Level 3
+
+
+
+-Cmat_type 0
+
+-options_file mg_cg3.opts
+
+

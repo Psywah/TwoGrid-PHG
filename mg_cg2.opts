@@ -1,0 +1,50 @@
+
+-solver petsc
+
+-solver_maxit 100
+-solver_rtol 1e-14
+-solver_atol 0
+-solver_btol 0
+
+-S_opts "-solver petsc -solver_maxit 1 -petsc_prefix s_"
+-S2_opts "-solver petsc -solver_maxit 1 -petsc_prefix s2_"
+
+-oem_options {
+
+    # main solver
+    -ksp_type fgmres
+    -pc_type shell
+
+
+    # smoother 
+    -s_ksp_type richardson
+    -s_pc_type asm
+    -s_pc_asm_overlap 1
+    -s_pc_asm_type restrict # basic, restrict, interpolate, none
+    -s_sub_ksp_type preonly
+    -s_sub_pc_type ilu
+
+
+    # coarse smoother
+    # -s2_ksp_type richardson
+    # -s2_pc_type asm
+    # -s2_pc_asm_overlap 1
+    # -s2_pc_asm_type restrict # basic, restrict, interpolate, none
+    # -s2_sub_ksp_type preonly
+    # -s2_sub_pc_type ilu
+
+    -s2_ksp_type gmres
+    -s2_pc_type lu
+    -s2_pc_factor_mat_solver_package mumps
+    
+    
+    #-sub_pc_factor_mat_solver_package superlu
+    #-sub_pc_factor_mat_solver_package mumps
+    -mat_mumps_sym	0		# 0, 1, 2: unsym, spd, sym
+    -mat_mumps_icntl_4	0		# 0, 1, 2, 3, 4: print_level
+
+}
+
+
+
+

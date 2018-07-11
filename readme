@@ -1,0 +1,103 @@
+#
+#
+#  两网格求解器
+#
+#
+
+test.c:        主程序
+two-grid.c:    两网格求解器    
+oct-search.c:  自适应八叉树搜索
+pgrid.c:       用来构造子通讯器上的网格，与phg/src/grid.c略有不同，需要库里更新
+
+
+============================================================
+                      几个实现问题
+============================================================
+
+
+1. 粗网格与子进程组
+
+   粗网格要分部到子进程组中，才能实现高效的两层通讯、两层求解。
+   目前使用的是一个临时性的解决方案处理子网格分部到子进程组，最好是有一个系统性的解决方案。
+   所有进程参加求解过程，如果一个进程不在粗网格 g2 的进程组中，则g2 = NULL。
+
+
+   另一个需要解决的问题是投影矩阵。因为投影矩阵的所在的进程组不同，所以我们采用了扩展Map的方式解决这个问题。
+
+
+
+2. Petsc options
+   对不同问题调用不同的Petsc求解器，为了在命令行上直接设置，可以使用Petsc的KSP Prefix设置。
+   如
+   -solver1_opts {-solver petsc -petsc_prefix s1_}
+   -solver2_opts {-solver petsc -petsc_prefix s2_}
+   -solver3_opts {-solver petsc -petsc_prefix s3_}
+
+   -oem_options {
+     -s1_ksp_type richardson
+     -s2_ksp_type gmres
+     -s3_ksp_type preonly
+   }
+   
+   
+   相应的库里的改动为，在solver-petsc中，
+--- solver-petsc.c.orig	2016-11-21 12:51:46.000000000 +0800
++++ solver-petsc.c	2016-11-21 12:52:55.000000000 +0800
+@@ -36,9 +36,11 @@
+ #include <strings.h>		/* bzero() */
+ 
+ static char *petsc_pc_opts = NULL;
++static char *petsc_prefix = NULL;
+ 
+ typedef struct {
+     char	*pc_opts;
++    char        *prefix;
+     Vec		B;	/* B=RHS */
+     Vec		U;	/* U=solution */
+     Mat		A;	/* A=matrix */
+@@ -66,6 +68,9 @@
+ 				"use a PHG solver as PETSc's PC and pass "
+ 				"the string as options for the PC solver)",
+ 				&petsc_pc_opts);
++    phgOptionsRegisterString("-petsc_prefix",
++			     "Petsc prefix",
++				&petsc_prefix);
+ 
+     return 0;
+ }
+@@ -134,6 +139,7 @@
+ {
+     solver->oem_data = phgCalloc(1, sizeof(OEM_DATA));
+     _t->pc_opts = (petsc_pc_opts == NULL ? NULL : strdup(petsc_pc_opts));
++    _t->prefix = (petsc_prefix == NULL ? NULL : strdup(petsc_prefix));
+     _t->B = PETSC_NULL;
+     _t->U = PETSC_NULL;
+     _t->A = PETSC_NULL;
+@@ -498,6 +504,8 @@
+ 
+     if (_t->ksp == PETSC_NULL) {
+ 	code = KSPCreate(solver->mat->rmap->comm, &_t->ksp); CHKERRQ(code);
++	if (_t->prefix != NULL)
++	    KSPSetOptionsPrefix(_t->ksp, _t->prefix); 
+ 	CHKERRQ(code);
+ #if PETSC_VERSION_MAJOR<3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<5)
+ 	code = KSPSetOperators(_t->ksp, _t->A, _t->A,
+
+
+
+
+
+============================================================
+                      其他问题、进一步发展
+============================================================
+
+0. Equation system 求解 (如INS)
+
+1. 粗网格矩阵
+   A2 = P A P^T 如何做cut off 
+2. 投影矩阵
+   2.1 L2 投影矩阵，适用于非Lagrangian的有限元
+   2.2 根据以往的经验，Dirichlet边界与Neumann边界处理可能会有影响
+3. oct-search
+   3.1 适当外插
+   3.2 通用接口，其他用途 (coarsening中插值)
